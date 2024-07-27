@@ -21,4 +21,8 @@ public class DataBase {
     public static Collection<User> findAll() {
         return users.values();
     }
+    public static boolean existUserId(String userId) {
+    	
+    	return users.containsKey(userId);
+    }
 }
