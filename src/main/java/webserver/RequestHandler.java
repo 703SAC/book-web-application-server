@@ -1,10 +1,15 @@
 package webserver;
 
+import java.io.BufferedReader;
 import java.io.DataOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,13 +29,47 @@ public class RequestHandler extends Thread {
 
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
             // TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
-            DataOutputStream dos = new DataOutputStream(out);
-            byte[] body = "Hello World".getBytes();
-            response200Header(dos, body.length);
-            responseBody(dos, body);
+        	try {
+        		String url = extractUrlFromInputStream(in);
+        		DataOutputStream dos = new DataOutputStream(out);
+                byte[] body = makeBody(url);
+                response200Header(dos, body.length);
+                responseBody(dos, body);
+        	}
+        	catch(NullPointerException e) {
+        		log.debug("NullPointerException: " + e.getMessage() + " // " + e.getLocalizedMessage());
+        		return;
+        	}
+            
         } catch (IOException e) {
             log.error(e.getMessage());
         }
+    }
+    
+    private byte[] makeBody(String requestedUrl) throws IOException, NullPointerException {
+    	log.debug("Requested Url : " + requestedUrl);
+    	if(requestedUrl.equals("/"))
+    		return "Hello World".getBytes();
+    	byte[] body =Files.readAllBytes(Path.of("./webapp" + requestedUrl));
+    	
+    	return body;
+    }
+    private String extractUrlFromInputStream(InputStream in) throws IOException, NullPointerException {
+    	String url = "";
+    	BufferedReader bufferReader =  new BufferedReader(new InputStreamReader(in));
+    	String line = bufferReader.readLine();
+    	if (line == null)
+    		return "";
+    	
+    	String method = line.split(" ")[0];
+    	url = line.split(" ")[1];
+    	log.debug("line: " + line + " // method: " + method + " // url" + url);
+    	
+    	while (!(line = bufferReader.readLine()).equals("")) {
+    		log.debug(line);
+    	}
+    	
+    	return url;
     }
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
