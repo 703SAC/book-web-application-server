@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Map;
 
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +45,8 @@ public class RequestHandler extends Thread {
         		return;
         	String method = line.split(" ")[0];
         	String url = line.split(" ")[1];
+        	
+        	
         	
         	String requestHeader = line;
         	String rawContentType = "";
