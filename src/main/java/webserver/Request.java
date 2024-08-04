@@ -15,6 +15,7 @@ public class Request {
 	private Map<String, String> cookies;
 	private boolean isLogined;
 	private Map<String, String> parameters;
+	private Map<String, String> header;
 	
 	public Request(BufferedReader in) throws IOException, NullPointerException{
 		String requestLine = in.readLine();
@@ -22,6 +23,7 @@ public class Request {
 			String[] parts = requestLine.split(" ");
 			this.method = parts[0];
 			this.url = parts[1];
+			this.header = new HashMap<String, String>();
 			parseUrl(parts[1]);
 			readHeaders(in);
 		}
@@ -36,8 +38,6 @@ public class Request {
 	            String queryString = url.substring(questionMarkIndex + 1);
 	            this.parameters = HttpRequestUtils.parseQueryString(queryString);
 	    		
-	    		model.User newUser = new model.User(parameters.get("userId"), parameters.get("password"), parameters.get("name"), parameters.get("email"));
-	    		DataBase.addUser(newUser);
 
 	        } else {
 	            this.url = url;
@@ -49,18 +49,23 @@ public class Request {
 	private void readHeaders(BufferedReader in) throws IOException{
 		String headerLine;
 		int contentLength = 0;
-		while(!(headerLine = in.readLine()).isEmpty()) {
+		while(!(headerLine = in.readLine()).isEmpty() && !(headerLine.isBlank())) {
+			if(headerLine.contains(": ")) {
+				String[] header = headerLine.split(":");
+				this.header.put(header[0], header[1].trim());
+			}
+			
 			if(headerLine.startsWith("Cookie:")) {
 				this.cookies = HttpRequestUtils.parseCookies(headerLine.substring(7).trim());
     			this.isLogined = Boolean.parseBoolean(this.cookies.get("logined"));
 			}
 			else if(headerLine.startsWith("Content-Length:")) {
 				contentLength = Integer.parseInt(headerLine.split(":")[1].trim());
-                
 			}
 		}
 		if(contentLength > 0){
 			this.body = readBody(in, contentLength);
+			parseBody(this.body);
 		}
 		else {
 			this.body = "";
@@ -85,7 +90,12 @@ public class Request {
         }
         return bodyBuilder.toString();
     }
-
+	
+	
+	private void parseBody(String body) {
+        this.parameters = HttpRequestUtils.parseQueryString(body);
+	}
+	
     public String getMethod() {
         return method;
     }
@@ -98,5 +108,10 @@ public class Request {
         return body;
     }
 
-	
+	public String getHeader(String fieldName) {
+		return header.get(fieldName);
+	}
+	public String getParameter(String parameterName) {
+		return parameters.get(parameterName);
+	}
 }
